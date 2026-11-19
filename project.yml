@@ -1,0 +1,51 @@
+# XcodeGen proje tanımı: Mac'te Xcode açmadan, CI'da .xcodeproj üretmek için.
+# Yapı: iPhone uygulaması + içine gömülü Apple Watch uygulaması (müşteri senaryosunun sadeleştirilmiş hali)
+name: WatchDemo
+options:
+  bundleIdPrefix: com.example
+  deploymentTarget:
+    iOS: "17.0"
+    watchOS: "10.0"
+settings:
+  base:
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "5.0"
+    CODE_SIGNING_ALLOWED: "NO"   # Demo: Apple Developer hesabı olmadan imzasız build
+targets:
+  WatchDemo:
+    type: application
+    platform: iOS
+    sources: [Sources/iOS]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.example.watchdemo
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        TARGETED_DEVICE_FAMILY: "1"
+    dependencies:
+      - target: WatchDemoWatch
+        embed: true
+        copy:
+          destination: productsDirectory
+          subpath: $(CONTENTS_FOLDER_PATH)/Watch
+  WatchDemoWatch:
+    type: application
+    platform: watchOS
+    sources: [Sources/Watch]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.example.watchdemo.watchkitapp
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: WatchDemo
+        INFOPLIST_KEY_WKCompanionAppBundleIdentifier: com.example.watchdemo
+        SKIP_INSTALL: YES
+        TARGETED_DEVICE_FAMILY: "4"
+schemes:
+  WatchDemo:
+    build:
+      targets:
+        WatchDemo: all
+    archive:
+      config: Release
