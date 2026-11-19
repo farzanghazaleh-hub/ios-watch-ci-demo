@@ -1,0 +1,25 @@
+name: 1 - Kesif (Xcode ve SDK envanteri)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  envanter:
+    runs-on: macos-26
+    steps:
+      - name: macOS surumu
+        run: sw_vers
+
+      - name: Varsayilan Xcode
+        run: |
+          xcodebuild -version
+          xcode-select -p
+
+      - name: Kurulu her Xcode icin iOS ve watchOS SDK'lari
+        run: |
+          for x in /Applications/Xcode_*.app; do
+            [ -L "$x" ] && continue
+            echo "=================== $x"
+            DEVELOPER_DIR="$x/Contents/Developer" xcodebuild -version | head -1
+            DEVELOPER_DIR="$x/Contents/Developer" xcodebuild -showsdks 2>/dev/null | grep -Ei "iphoneos|watchos" || echo "  (iOS/watchOS SDK bulunamadi)"
+          done
