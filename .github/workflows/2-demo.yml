@@ -1,0 +1,90 @@
+name: 2 - watchOS hata ve cozum demosu
+
+on:
+  workflow_dispatch:
+    inputs:
+      xcode:
+        description: "Kullanilacak Xcode (orn. /Applications/Xcode_26.5.app). Bos birakilirsa varsayilan."
+        required: false
+        default: ""
+
+env:
+  LANG: en_US.UTF-8
+  LC_ALL: en_US.UTF-8
+  XCODE_PATH: ${{ inputs.xcode }}
+
+jobs:
+  a-mevcut-durum:
+    runs-on: macos-26
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Xcode sec
+        if: ${{ inputs.xcode != '' }}
+        run: sudo xcode-select -s "$XCODE_PATH/Contents/Developer"
+
+      - name: Ortam bilgisi
+        run: |
+          xcodebuild -version
+          xcodebuild -showsdks | grep -Ei "iphoneos|watchos" || true
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+
+      - name: Araclar ve proje
+        run: |
+          brew install xcodegen xcbeautify
+          xcodegen generate
+
+      - name: Archive (fastlane)
+        run: bundle exec fastlane ios build_unsigned
+
+  b-onerilen-cozum:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Xcode sec
+        if: ${{ inputs.xcode != '' }}
+        run: sudo xcode-select -s "$XCODE_PATH/Contents/Developer"
+
+      - name: Ortam bilgisi (once)
+        run: |
+          xcodebuild -version
+          xcodebuild -showsdks | grep -Ei "iphoneos|watchos" || true
+
+      - name: On kontrol - watchOS kurulu mu?
+        run: |
+          if xcodebuild -showsdks | grep -qi watchos; then
+            echo "watchOS platformu kurulu."
+          else
+            echo "watchOS platformu kurulu degil -> kuruluyor: xcodebuild -downloadPlatform watchOS"
+            xcodebuild -downloadPlatform watchOS
+          fi
+          echo "--- Kurulum sonrasi SDK listesi ---"
+          xcodebuild -showsdks | grep -Ei "iphoneos|watchos"
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+
+      - name: Araclar ve proje
+        run: |
+          brew install xcodegen xcbeautify
+          xcodegen generate
+
+      - name: Archive (fastlane)
+        run: bundle exec fastlane ios build_unsigned
+
+      - name: Archive icerigi (Watch uygulamasi gomulu mu?)
+        run: find build/WatchDemo.xcarchive -maxdepth 6 -name "*.app" -print
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: WatchDemo-xcarchive
+          path: build/WatchDemo.xcarchive
+          retention-days: 3
